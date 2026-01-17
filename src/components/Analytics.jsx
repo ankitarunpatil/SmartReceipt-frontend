@@ -5,17 +5,24 @@ import { getAnalytics } from '../services/api';
 const Analytics = ({ refresh }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadAnalytics();
   }, [refresh]);
 
   const loadAnalytics = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
+      console.log('📊 Loading analytics...');
       const data = await getAnalytics();
+      console.log('📊 Analytics data received:', data);
       setAnalytics(data);
     } catch (err) {
-      console.error('Failed to load analytics:', err);
+      console.error('❌ Failed to load analytics:', err);
+      setError(err.message || 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
@@ -26,28 +33,41 @@ const Analytics = ({ refresh }) => {
       <div className="card">
         <div className="loading">
           <div className="spinner"></div>
-          <p style={{ marginTop: '16px' }}>Loading analytics...</p>
+          <p style={{ marginTop: '16px', color: '#6c757d' }}>Loading analytics...</p>
         </div>
       </div>
     );
   }
 
-  // Add this check after loading finishes
-    if (!analytics || analytics.total_receipts === 0) {
+  if (error) {
     return (
-        <div className="card fade-in" style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <div className="card fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <p style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</p>
+        <h3 style={{ marginBottom: '8px', color: '#dc3545' }}>Failed to Load Analytics</h3>
+        <p style={{ color: '#6c757d', fontSize: '14px', marginBottom: '16px' }}>
+          {error}
+        </p>
+        <button 
+          className="btn btn-primary"
+          onClick={loadAnalytics}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!analytics || analytics.total_receipts === 0) {
+    return (
+      <div className="card fade-in" style={{ textAlign: 'center', padding: '60px 20px' }}>
         <p style={{ fontSize: '48px', marginBottom: '16px' }}>📊</p>
         <h3 style={{ marginBottom: '8px' }}>No analytics yet</h3>
         <p style={{ color: '#6c757d' }}>
-            Upload receipts to see your spending analytics
+          Upload receipts to see your spending analytics
         </p>
-        </div>
+      </div>
     );
-    }
-
-//   if (!analytics) {
-//     return null;
-//   }
+  }
 
   const stats = [
     {
@@ -65,7 +85,7 @@ const Analytics = ({ refresh }) => {
     {
       icon: <ShoppingCart size={32} color="#ffc107" />,
       label: 'Categories',
-      value: Object.keys(analytics.by_category).length,
+      value: Object.keys(analytics.by_category || {}).length,
       color: '#ffc107'
     },
     {
@@ -107,7 +127,7 @@ const Analytics = ({ refresh }) => {
       </div>
 
       {/* Category Breakdown */}
-      {Object.keys(analytics.by_category).length > 0 && (
+      {analytics.by_category && Object.keys(analytics.by_category).length > 0 && (
         <div className="card">
           <h3 style={{ marginBottom: '16px', fontSize: '18px' }}>
             Spending by Category
@@ -160,7 +180,7 @@ const Analytics = ({ refresh }) => {
       )}
 
       {/* Monthly Breakdown */}
-      {Object.keys(analytics.by_month).length > 0 && (
+      {analytics.by_month && Object.keys(analytics.by_month).length > 0 && (
         <div className="card" style={{ marginTop: '20px' }}>
           <h3 style={{ marginBottom: '16px', fontSize: '18px' }}>
             Spending by Month
